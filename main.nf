@@ -1,130 +1,133 @@
-#!/usr/bin/env nextflow
-
-sampleToFastqChSingle = Channel
+sampleToFastqLocationsSingle = Channel
   .fromPath(params.sampleToFastqsPath)
   .splitCsv(sep: "\t")
-  .filter(it.length == 2)
-
-sampleToFastqChPaired = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter(it.length == 3)
-
-process initWorkingDirSingle {
-  input:
-  tuple val(sampleId), val(fastq) from sampleToFastqChSingle
-
-  output:
-  tuple val(sampleId), path(workingDir) into workingDirsChSingle
-
-  script:
-  workingDir = "$baseDir/working/$sampleId"
+  .filter {it.size() == 2}
+process prepareReadsSingle {
   
-  '''
-  mkdir -p "$workingDir/input"
-  wget $fastq -O "$workingDir/input/$sampleId.fastq"
-  '''
-}
-
-process initWorkingDirPaired {
   input:
-  tuple val(sampleId), val(fastq1), val(fastq2) from sampleToFastqChPaired
+  tuple val(sample), val(fastq) from sampleToFastqLocationsSingle
 
   output:
-  tuple val(sampleId), path(workingDir) into workingDirsChPaired
+  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsSingle
 
   script:
-  workingDir = "$baseDir/working/$sampleId"
-
-  '''
-  mkdir -p "$workingDir/input"
-  wget $fastq1 -O "$workingDir/input/${sampleId}_1.fastq"
-  wget $fastq2 -O "$workingDir/input/${sampleId}_2.fastq"
-  '''
+    """
+    wget $fastq -O reads.fastq.gz
+    gunzip *gz
+    kneaddata ${params.kneaddataFlags} \
+      --input reads.fastq \
+      --output .
+    """
 }
 
-process kneadWorkingDirSingle {
+sampleToFastqLocationsPaired = Channel
+  .fromPath(params.sampleToFastqsPath)
+  .splitCsv(sep: "\t")
+  .filter {it.size() == 3}
+process prepareReadsPaired {
+  
   input:
-  tuple val(sampleId), path(workingDir) from workingDirsChSingle
+  tuple val(sample), val(fastq1), val(fastq2) from sampleToFastqLocationsPaired
 
   output:
-  tuple val(sampleId), path(workingDir), path(kneadedFastq) into kneadedFastqs
+  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsPaired
 
   script:
-    db=refs.kneaddataDb
-    trimmomatic = refs.trimmomaticLib
-    fastq = "input/${sampleId}.fastq"
-    kneadedFastq = "trimmed/${sampleId}.fastq"
-  '''
-
-  cd $workingDir \
-    && kneaddata -reference-db $db --trimmomatic $trimmomatic --cat-final-output --input $fastq --output trimmed  \
-    && test -f $kneadedFastq && rm -r input
-  '''
+    """
+    wget $fastq1 -O reads.fastq.gz
+    wget $fastq2 -O reads_R.fastq.gz
+    gunzip *gz
+    kneaddata ${params.kneaddataFlags} \
+      --input reads.fastq --input reads_R.fastq --cat-final-output \
+      --output . 
+    """
 }
 
-process kneadWorkingDirPaired {
+process runHumann {
   input:
-  tuple val(sampleId), path(workingDir) from workingDirsChPaired
+  tuple val(sample), file(kneadedReads) from kneadedReadsSingle.join(kneadedReadsPaired)
 
   output:
-  tuple val(sampleId), path(workingDir), path(kneadedFastq) into kneadedFastqs
+  file("${sample}.bugs.tsv") into out_bugs
+  file("${sample}.ec_named.tsv") into out_ecs
+  file("${sample}.pathway_abundance.tsv") into out_pas
+  file("${sample}.pathway_coverage.tsv") into out_pcs
 
   script:
-    db=refs.kneaddataDb
-    trimmomatic = refs.trimmomaticLib
-    fastq1 = "input/${sampleId}_1.fastq"
-    fastq2 = "input/${sampleId}_2.fastq"
-    kneadedFastq = "trimmed/${sampleId}.fastq"
-  '''
-
-  cd $workingDir \
-    && kneaddata -reference-db $db --trimmomatic $trimmomatic --cat-final-output --input $fastq1 --input $fastq2 --output trimmed  \
-    && test -f $kneadedFastq && rm -r input
-  '''
-}
-
-process runHumannMain {
-  input:
-  tuple val(sampleId), path(workingDir), path(kneadedFastq) from kneadedFastqs
-
-  output:
-  tuple val(sampleId), path(metaphlanOutPath) into metaphlanBugs
-
-  script:
-  metaphlanOutPath = "${sampleId}_humann_temp/${sampleId}_metaphlan_bugs_list.tsv"
-  genesOutPath = "${sampleId}_genefamilies.tsv
-  pathwaysAbundanceOutPath = "${sampleId}_pathabundance.tsv
-  pathwaysCoverageOutPath = "${sampleId}_pathcoverage.tsv
-  '''
-  humann --input $kneadedFastq --output .
-  '''
-}
-
-process joinAllMetaphlanBugs {
-
-  publishDir params.resultDir
-
-  input:
-  tuple val(sampleId), path(metaphlanOutPath) from metaphlanBugs
-
-  output:
-  path(resultNameTaxons) into results
-
-  script:
-    taxonsOut = params.resultTaxonsPath
   """
-  perl -ne 'my (@bars) = /\|/g; print if @bars == 6 ' < $metaphlanOutPath | while read -r line; do
-    echo "$sampleId\t$line"
-  done >> $taxonsOut
+  mv -v $kneadedReads reads.fastq
+  humann --input reads.fastq --output .
+
+  mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.bugs.tsv
+  
+  humann_renorm_table --input reads_genefamilies.tsv --output reads_genefamilies_cpm.tsv --units cpm --update-snames
+  humann_regroup_table --input reads_genefamilies_cpm.tsv --output reads_ec4.tsv --groups uniref50_level4ec
+  humann_rename_table --input reads_ec4.tsv --output ${sample}.ec_named.tsv --names ec
+
+  mv -v reads_pathabundance.tsv ${sample}.pathway_abundance.tsv
+  mv -v reads_pathcoverage.tsv ${sample}.pathway_coverage.tsv
+
   """
 }
 
-process joinAllHumannPathways {
-
-  publishDir params.resultDir
+process aggregate_bugs {
+  publishDir $params.resultDir
 
   input:
-  tuple val(sampleId), path(metaphlanOutPath) from metaphlanBugs
+  file('*.bugs.tsv') from out_bugs.collect()
+
+
+  outout:
+  file("all_bugs.tsv")
+
+  script:
+  """
+  grep "" *.bugs.tsv > all_bugs.tsv
+  """
 }
+
+process aggregate_ecs {
+  publishDir $params.resultDir
+
+  input:
+  file('*.ec_named.tsv') from out_ecs.collect()
+
+  output:
+  file("all_ecs.tsv")
+
+  script:
+  """
+  humann_join_tables --input . --output all_ecs.tsv --file_name ec_named
+  """
 }
+
+process aggregate_pathway_abundances {
+  publishDir $params.resultDir
+
+  input:
+  file('*.pathway_abundance.tsv') from out_ecs.collect()
+
+  output:
+  file("all_pathway_abundances.tsv")
+
+  script:
+  """
+  humann_join_tables --input . --output all_pathway_abundances.tsv --file_name pathway_abundance
+  """
+}
+
+process aggregate_pathway_coverages {
+  publishDir $params.resultDir
+
+  input:
+  file('*.pathway_coverage.tsv') from out_ecs.collect()
+
+  output:
+  file("all_pathway_coverages.tsv")
+
+  script:
+  """
+  humann_join_tables --input . --output all_pathway_coverages.tsv --file_name pathway_coverage
+  """
+}
+

@@ -1,7 +1,5 @@
-SRS016492 
-SRS014459-StoolTwice	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014459-Stool.fasta	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014459-Stool.fasta
-SRS014464-Anterior_nares	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014464-Anterior_nares.fasta
-SRS014470-Tongue_dorsum	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014470-Tongue_dorsum.fasta
-SRS014472-Buccal_mucosa	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014472-Buccal_mucosa.fasta
-SRS014476-Supragingival_plaque	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014476-Supragingival_plaque.fasta
-SRS014494-Posterior_fornix	https://raw.githubusercontent.com/biobakery/biobakery/master/demos/biobakery_demos/data/humann2/input/763577454-SRS014494-Posterior_fornix.fasta
+SAMN06165598	ftp.sra.ebi.ac.uk/vol1/fastq/SRR516/003/SRR5164123/SRR5164123.fastq.gz
+SAMN06165426	ftp.sra.ebi.ac.uk/vol1/fastq/SRR603/007/SRR6038237/SRR6038237_1.fastq.gz	ftp.sra.ebi.ac.uk/vol1/fastq/SRR603/007/SRR6038237/SRR6038237_2.fastq.gz
+SAMN06165405	ftp.sra.ebi.ac.uk/vol1/fastq/SRR516/002/SRR5164232/SRR5164232.fastq.gz
+SAMN06165662	ftp.sra.ebi.ac.uk/vol1/fastq/SRR603/008/SRR6038508/SRR6038508_1.fastq.gz	ftp.sra.ebi.ac.uk/vol1/fastq/SRR603/008/SRR6038508/SRR6038508_2.fastq.gz
+SAMN06165630	ftp.sra.ebi.ac.uk/vol1/fastq/SRR516/003/SRR5164053/SRR5164053.fastq.gz
