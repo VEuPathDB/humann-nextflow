@@ -12,7 +12,7 @@ process prepareReadsSingle {
 
   script:
     """
-    wget $fastq -O reads.fastq.gz
+    ${params.wgetCommand} $fastq -O reads.fastq.gz
     gunzip *gz
     kneaddata ${params.kneaddataFlags} \
       --input reads.fastq \
@@ -34,8 +34,8 @@ process prepareReadsPaired {
 
   script:
     """
-    wget $fastq1 -O reads.fastq.gz
-    wget $fastq2 -O reads_R.fastq.gz
+    ${params.wgetCommand} $fastq1 -O reads.fastq.gz
+    ${params.wgetCommand} $fastq2 -O reads_R.fastq.gz
     gunzip *gz
     kneaddata ${params.kneaddataFlags} \
       --input reads.fastq --input reads_R.fastq --cat-final-output \
@@ -43,9 +43,14 @@ process prepareReadsPaired {
     """
 }
 
+kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired)
+
+
 process runHumann {
+  label 'mem_4c'
+
   input:
-  tuple val(sample), file(kneadedReads) from kneadedReadsSingle.join(kneadedReadsPaired)
+  tuple val(sample), file(kneadedReads) from kneadedReads
 
   output:
   file("${sample}.bugs.tsv") into out_bugs
@@ -56,7 +61,7 @@ process runHumann {
   script:
   """
   mv -v $kneadedReads reads.fastq
-  humann --input reads.fastq --output .
+  ${params.humannCommand} --threads 4 --input reads.fastq --output .
 
   mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.bugs.tsv
   
@@ -71,13 +76,13 @@ process runHumann {
 }
 
 process aggregate_bugs {
-  publishDir $params.resultDir
+  publishDir params.resultDir
 
   input:
   file('*.bugs.tsv') from out_bugs.collect()
 
 
-  outout:
+  output:
   file("all_bugs.tsv")
 
   script:
@@ -87,7 +92,7 @@ process aggregate_bugs {
 }
 
 process aggregate_ecs {
-  publishDir $params.resultDir
+  publishDir params.resultDir
 
   input:
   file('*.ec_named.tsv') from out_ecs.collect()
@@ -102,10 +107,10 @@ process aggregate_ecs {
 }
 
 process aggregate_pathway_abundances {
-  publishDir $params.resultDir
+  publishDir params.resultDir
 
   input:
-  file('*.pathway_abundance.tsv') from out_ecs.collect()
+  file('*.pathway_abundance.tsv') from out_pas.collect()
 
   output:
   file("all_pathway_abundances.tsv")
@@ -117,10 +122,10 @@ process aggregate_pathway_abundances {
 }
 
 process aggregate_pathway_coverages {
-  publishDir $params.resultDir
+  publishDir params.resultDir
 
   input:
-  file('*.pathway_coverage.tsv') from out_ecs.collect()
+  file('*.pathway_coverage.tsv') from out_pcs.collect()
 
   output:
   file("all_pathway_coverages.tsv")
