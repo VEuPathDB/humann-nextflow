@@ -14,7 +14,7 @@ process prepareReadsSingle {
     """
     ${params.wgetCommand} $fastq -O reads.fastq.gz
     gunzip *gz
-    kneaddata ${params.kneaddataFlags} \
+    ${params.kneaddataCommand} \
       --input reads.fastq \
       --output .
     """
@@ -37,7 +37,7 @@ process prepareReadsPaired {
     ${params.wgetCommand} $fastq1 -O reads.fastq.gz
     ${params.wgetCommand} $fastq2 -O reads_R.fastq.gz
     gunzip *gz
-    kneaddata ${params.kneaddataFlags} \
+    ${params.kneaddataCommand} \
       --input reads.fastq --input reads_R.fastq --cat-final-output \
       --output . 
     """
