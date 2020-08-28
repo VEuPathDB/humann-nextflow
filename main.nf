@@ -6,6 +6,8 @@ process prepareReadsSingle {
   
   maxForks 5
 
+  afterScript 'rm -v reads.fastq'
+
   input:
   tuple val(sample), val(fastq) from sampleToFastqLocationsSingle
 
@@ -20,10 +22,7 @@ process prepareReadsSingle {
     --input reads.fastq \
     --output .
   """
-  afterScript:
-  """
-  rm -v reads.fastq
-  """
+
 }
 
 sampleToFastqLocationsPaired = Channel
@@ -33,6 +32,8 @@ sampleToFastqLocationsPaired = Channel
 process prepareReadsPaired {
   
   maxForks 5
+
+  afterScript 'rm -v reads.fastq reads_R.fastq.gz'
 
   input:
   tuple val(sample), val(fastq1), val(fastq2) from sampleToFastqLocationsPaired
@@ -47,13 +48,9 @@ process prepareReadsPaired {
   gunzip *gz
   ${params.kneaddataCommand} \
     --input reads.fastq --input reads_R.fastq --cat-final-output \
-    --outputnput name is the same as the channel name, the from part of the input declaration can be omitted. Thus, the above example could be written as  . 
+    --output .
   """
 
-  afterScript:
-  """
-  rm -v reads.fastq reads_R.fastq.gz
-  """
 }
 
 kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired)
@@ -62,35 +59,73 @@ kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired)
 process runHumann {
   label 'mem_4c'
 
+  afterScript 'rm -rv reads_humann_temp'
+
   input:
   tuple val(sample), file(kneadedReads) from kneadedReads
 
   output:
-  file("${sample}.bugs.tsv") into outChTaxonAbundances
-  file("${sample}.ec_named.tsv") into outChEnzymeAbundances
-  file("${sample}.pathway_abundance.tsv") into outChPathwayAbundances
-  file("${sample}.pathway_coverage.tsv") into outChPathwayCoverages
+  file("${sample}.metaphlan.out") into taxonAbundances
+  tuple val(sample), file("${sample}.gene_abundance.tsv") into geneAbundances
+  file("${sample}.pathway_abundance.tsv") into pathwayAbundances
+  file("${sample}.pathway_coverage.tsv") into pathwayCoverages
 
   script:
   """
-  mv -v $kneadedReads reads.fastq
+  ln -vs $kneadedReads reads.fastq
   ${params.humannCommand} --threads 4 --input reads.fastq --output .
 
-  mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.bugs.tsv
+  mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.metaphlan.out
   mv -v reads_humann_temp/reads.log humann.log
   
-  humann_renorm_table --input reads_genefamilies.tsv --output reads_genefamilies_cpm.tsv --units cpm --update-snames
-
-  humann_regroup_table --input reads_genefamilies_cpm.tsv --output reads_ec4.tsv --groups uniref50_rxn
-  humann_rename_table --input reads_ec4.tsv --output ${sample}.ec_named.tsv --names metacyc-rxn
+  humann_renorm_table --input reads_genefamilies.tsv --output ${sample}.gene_abundance.tsv --units cpm --update-snames
 
   mv -v reads_pathabundance.tsv ${sample}.pathway_abundance.tsv
   mv -v reads_pathcoverage.tsv ${sample}.pathway_coverage.tsv
   """
 
-  afterScript:
+}
+
+functionalUnitNames = [
+  eggnog: "eggnog",
+  go: "go",
+  ko: "kegg-orthology",
+  level4ec: "ec",
+  pfam: "pfam",
+  rxn: "metacyc-rxn",
+]
+
+process groupFunctionalUnits {
+
+  input:
+  tuple val(sample), file(geneAbundances) from geneAbundances
+  each (groupType) from params.functionalUnits
+
+  output:
+  file("${sample}.${groupType}.tsv") into functionAbundances
+
+  script:
+  group=params.unirefXX + "_" + groupType
+  groupName=functionalUnitNames[groupType]
   """
-  rm -rv reads_humann_temp
+  humann_regroup_table --input $geneAbundances --output ${group}.tsv --groups ${group}
+  humann_rename_table --input ${group}.tsv --output ${sample}.{groupType}.tsv --names ${groupName}
+  """
+}
+
+process aggregateFunctionAbundances {
+  publishDir params.resultDir
+
+  input:
+  file('*.tsv') from functionAbundances.collect()
+  each (groupType) from params.functionalUnits
+
+  output:
+  file("${groupType}.tsv")
+
+  script:
+  """
+  humann_join_tables --input . --output "${groupType}.tsv" --file_name ${groupType}
   """
 }
 
@@ -98,45 +133,31 @@ process aggregateTaxonAbundances {
   publishDir params.resultDir
 
   input:
-  file('*.bugs.tsv') from outChTaxonAbundances.collect()
+  file('*.metaphlan.out') from taxonAbundances.collect()
 
 
   output:
-  file("all_bugs.tsv")
+  file("taxon_abundances.tsv")
 
   script:
   """
-  grep "" *.bugs.tsv > all_bugs.tsv
+  merge_metaphlan_tables.py *.metaphlan.out > taxon_abundances.tsv
   """
 }
 
-process aggregateEnzymeAbundances {
-  publishDir params.resultDir
-
-  input:
-  file('*.ec_named.tsv') from outChEnzymeAbundances.collect()
-
-  output:
-  file("all_ecs.tsv")
-
-  script:
-  """
-  humann_join_tables --input . --output all_ecs.tsv --file_name ec_named
-  """
-}
 
 process aggregatePathwayAbundances {
   publishDir params.resultDir
 
   input:
-  file('*.pathway_abundance.tsv') from outChPathwayAbundances.collect()
+  file('*.pathway_abundance.tsv') from pathwayAbundances.collect()
 
   output:
-  file("all_pathway_abundances.tsv")
+  file("pathway_abundances.tsv")
 
   script:
   """
-  humann_join_tables --input . --output all_pathway_abundances.tsv --file_name pathway_abundance
+  humann_join_tables --input . --output pathway_abundances.tsv --file_name pathway_abundance
   """
 }
 
@@ -144,14 +165,14 @@ process aggregatePathwayCoverages {
   publishDir params.resultDir
 
   input:
-  file('*.pathway_coverage.tsv') from outChPathwayCoverages.collect()
+  file('*.pathway_coverage.tsv') from pathwayCoverages.collect()
 
   output:
-  file("all_pathway_coverages.tsv")
+  file("pathway_coverages.tsv")
 
   script:
   """
-  humann_join_tables --input . --output all_pathway_coverages.tsv --file_name pathway_coverage
+  humann_join_tables --input . --output pathway_coverages.tsv --file_name pathway_coverage
   """
 }
 
