@@ -109,7 +109,7 @@ process groupFunctionalUnits {
   groupName=functionalUnitNames[groupType]
   """
   humann_regroup_table --input $geneAbundances --output ${group}.tsv --groups ${group}
-  humann_rename_table --input ${group}.tsv --output ${sample}.{groupType}.tsv --names ${groupName}
+  humann_rename_table --input ${group}.tsv --output ${sample}.${groupType}.tsv --names ${groupName}
   """
 }
 
@@ -117,7 +117,7 @@ process aggregateFunctionAbundances {
   publishDir params.resultDir
 
   input:
-  file('*.tsv') from functionAbundances.collect()
+  file('*') from functionAbundances.collect()
   each (groupType) from params.functionalUnits
 
   output:
@@ -133,7 +133,7 @@ process aggregateTaxonAbundances {
   publishDir params.resultDir
 
   input:
-  file('*.metaphlan.out') from taxonAbundances.collect()
+  file('*') from taxonAbundances.collect()
 
 
   output:
@@ -150,7 +150,7 @@ process aggregatePathwayAbundances {
   publishDir params.resultDir
 
   input:
-  file('*.pathway_abundance.tsv') from pathwayAbundances.collect()
+  file('*') from pathwayAbundances.collect()
 
   output:
   file("pathway_abundances.tsv")
@@ -165,7 +165,7 @@ process aggregatePathwayCoverages {
   publishDir params.resultDir
 
   input:
-  file('*.pathway_coverage.tsv') from pathwayCoverages.collect()
+  file('*') from pathwayCoverages.collect()
 
   output:
   file("pathway_coverages.tsv")

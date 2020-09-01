@@ -1,2 +1,2 @@
-3000007	https://pubs.broadinstitute.org/diabimmune/data/20/G80137_R1.fastq.gz	https://pubs.broadinstitute.org/diabimmune/data/20/G80137_R2.fastq.gz
-3000044	https://pubs.broadinstitute.org/diabimmune/data/20/G80522_R1.fastq.gz	https://pubs.broadinstitute.org/diabimmune/data/20/G80522_R2.fastq.gz
+SRS1007613	ftp.sra.ebi.ac.uk/vol1/fastq/SRR211/004/SRR2119804/SRR2119804.fastq.gz
+tiny-test-data-mt	https://github.com/roryk/tiny-test-data/blob/master/wgs/mt_1.fq.gz?raw=true	https://github.com/roryk/tiny-test-data/blob/master/wgs/mt_2.fq.gz?raw=true
