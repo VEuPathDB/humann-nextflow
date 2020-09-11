@@ -1,0 +1,12 @@
+#!/bin/bash
+OUTPUT="$1"
+GROUP_TYPE="$2"
+humann_join_tables --input . --output $OUTPUT --file_name $GROUP_TYPE
+
+export GROUP_TYPE
+perl -i -MEnv=GROUP_TYPE -pe '
+if(${.} == 1){
+  s/\.$ENV{GROUP_TYPE}//g;
+  s/^# //;
+}
+' $OUTPUT

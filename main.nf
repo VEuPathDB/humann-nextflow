@@ -121,11 +121,11 @@ process aggregateFunctionAbundances {
   each (groupType) from params.functionalUnits
 
   output:
-  file("${groupType}.tsv")
+  file("${groupType}s.tsv")
 
   script:
   """
-  humann_join_tables --input . --output "${groupType}.tsv" --file_name ${groupType}
+  joinTablesForGroupType ${groupType}s.tsv $groupType
   """
 }
 
@@ -140,9 +140,13 @@ process aggregateTaxonAbundances {
   file("taxon_abundances.tsv")
 
   script:
-  """
-  merge_metaphlan_tables.py *.metaphlan.out > taxon_abundances.tsv
-  """
+  '''
+  merge_metaphlan_tables.py *.metaphlan.out \
+   | grep -v '^#' \
+   | cut -f 1,3- \
+   | perl -pe 'if($.==1){s/.metaphlan//g}' \
+   > taxon_abundances.tsv
+  '''
 }
 
 
@@ -157,7 +161,7 @@ process aggregatePathwayAbundances {
 
   script:
   """
-  humann_join_tables --input . --output pathway_abundances.tsv --file_name pathway_abundance
+  joinTablesForGroupType pathway_abundances.tsv pathway_abundance
   """
 }
 
@@ -172,7 +176,7 @@ process aggregatePathwayCoverages {
 
   script:
   """
-  humann_join_tables --input . --output pathway_coverages.tsv --file_name pathway_coverage
+  joinTablesForGroupType pathway_coverages.tsv pathway_coverage
   """
 }
 
