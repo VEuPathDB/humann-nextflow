@@ -53,3 +53,16 @@ humann_databases utility_mapping full ~/humann_databases
 Also the metaphlan_installation comes with its own chocophlan from 2019.
 
 Using `uniref50_diamond`: might be revised to the EC filtered version.
+
+## Input format
+File with two or three columns.
+
+Also it is recommended to customise the config, such that the humann-running jobs have enough CPU and memory for `diamond`.
+You can also specify how the tools are run.
+
+## Output format
+There's a file for taxa, pathway abundances, pathway coverages, and each functional unit specified in the config.
+
+Each file is a TSV. The header contains the row type, followed by sample names. This is the same as the output of `humann_join_tables` script.
+
+Taxa are in the same format, created by adjusting the usual Metaphlan output by removing the frontmatter and the NCBI id column.
