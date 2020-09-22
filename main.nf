@@ -3,7 +3,9 @@ sampleToFastqLocationsSingle = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 2}
 process prepareReadsSingle {
-  
+
+  errorStrategy 'retry' 
+  maxRetries 3
   maxForks 5
 
   afterScript 'rm -v reads.fastq'
@@ -30,7 +32,9 @@ sampleToFastqLocationsPaired = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 3}
 process prepareReadsPaired {
-  
+
+  errorStrategy 'retry' 
+  maxRetries 3
   maxForks 5
 
   afterScript 'rm -v reads.fastq reads_R.fastq.gz'
