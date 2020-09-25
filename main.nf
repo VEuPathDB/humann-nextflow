@@ -116,7 +116,7 @@ process groupFunctionalUnits {
 }
 
 process aggregateFunctionAbundances {
-  publishDir params.resultDir
+  publishDir params.resultDir, mode: 'move'
 
   input:
   file('*') from functionAbundances.collect()
@@ -132,7 +132,7 @@ process aggregateFunctionAbundances {
 }
 
 process aggregateTaxonAbundances {
-  publishDir params.resultDir
+  publishDir params.resultDir, mode: 'move'
 
   input:
   file('*') from taxonAbundances.collect()
@@ -153,7 +153,7 @@ process aggregateTaxonAbundances {
 
 
 process aggregatePathwayAbundances {
-  publishDir params.resultDir
+  publishDir params.resultDir, mode: 'move'
 
   input:
   file('*') from pathwayAbundances.collect()
@@ -168,7 +168,7 @@ process aggregatePathwayAbundances {
 }
 
 process aggregatePathwayCoverages {
-  publishDir params.resultDir
+  publishDir params.resultDir, mode: 'move'
 
   input:
   file('*') from pathwayCoverages.collect()
