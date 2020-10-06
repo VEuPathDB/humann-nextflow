@@ -3,7 +3,14 @@ sampleToFastqLocationsSingle = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 2}
 process prepareReadsSingle {
-  errorStrategy { if (task.exitStatus == 8) { sleep(Math.pow(2, task.attempt) * 500 as long); return 'retry' } else { return 'terminate' } }
+  errorStrategy { 
+    sleep(Math.pow(2, task.attempt) * 500 as long);
+    if (task.exitStatus == 8 || task.attempt < 4 ) {
+      return 'retry' 
+    } else {
+      return 'terminate' 
+    }
+  }
   maxRetries 10
   maxForks 5
 
@@ -31,7 +38,14 @@ sampleToFastqLocationsPaired = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 3}
 process prepareReadsPaired {
-  errorStrategy { if (task.exitStatus == 8) { sleep(Math.pow(2, task.attempt) * 500 as long); return 'retry' } else { return 'terminate' } }
+  errorStrategy { 
+    sleep(Math.pow(2, task.attempt) * 500 as long);
+    if (task.exitStatus == 8 || task.attempt < 4 ) {
+      return 'retry' 
+    } else {
+      return 'terminate' 
+    }
+  }
   maxRetries 10
   maxForks 5
 
