@@ -75,7 +75,7 @@ kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired)
 process runHumann {
   label 'mem_4c'
 
-  afterScript 'rm -rv reads_humann_temp'
+  afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
 
   input:
   tuple val(sample), file(kneadedReads) from kneadedReads
@@ -92,7 +92,6 @@ process runHumann {
   ${params.humannCommand} --threads 4 --input reads.fastq --output .
 
   mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.metaphlan.out
-  mv -v reads_humann_temp/reads.log humann.log
   
   humann_renorm_table --input reads_genefamilies.tsv --output ${sample}.gene_abundance.tsv --units cpm --update-snames
 
