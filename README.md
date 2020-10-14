@@ -3,8 +3,8 @@
 Runs humann for a list of samples.
 
 In:
-- list of sample + fastq URLs, single or paired end
-- config
+- list of sample + fastq URLs
+- configuration
 
 Out:
 - species tables from metaphlan
@@ -12,10 +12,16 @@ Out:
 - abundances of pathways
 - coverages of pathways
 
-Stuff gets nicely formatted and provided as single TSV per result type.
+## Overview
+The fastqs are downloaded locally, trimmed ("kneaded") with `kneaddata`, and - if paired - merged together.
+Then `humann` is ran on each input, with specified CPU and memory.
+The results are merged and returned as a single file per result type.
+
+![diagram](https://raw.githubusercontent.com/wbazant/humann-nextflow/master/flowchart.svg)
+
+
 
 ## Install
-
 pip3, metaphlan, and humann:
 ```
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
@@ -42,9 +48,8 @@ unzip *zip
 
 ```
 
-## Configuration
 ### Reference databases
-HUMAnN and Kneaddata need reference databases:
+HUMAnN and Kneaddata need reference databases.
 
 ```
 kneaddata_database --download human_genome bowtie2 ~/kneaddata_databases/
@@ -55,9 +60,23 @@ humann_databases utility_mapping full ~/humann_databases
 ```
 
 MetaPHlAn will come preconfigured - its installation comes with its own ChocoPhlAn.
+## Configuration guide
+
+### How to provide input
+Prepare a file with two or three columns in the TSV format:
+
+```
+sample	fastq URL [second fastq URL]
+```
+for single or paired read files. The fastqs will be fetched using `wget`.
+
+and place it under the path `data/sample-to-fastqs.tsv` or modify the config.
+
+The pipeline currently doesn't support providing filesystem paths but it wouldn't be hard to modify it!
+
 
 ### Choosing the reference protein set
-`uniref50_diamond` might be better for you instead of `uniref90_diamond`.
+`uniref50_diamond` might be more economical than `uniref90_diamond`.
 
 In that case, modify or override `nextflow.config` as follows:
 ```
@@ -66,7 +85,9 @@ params {
 }
 ```
 
-If you use `uniref90_ec_filtered_diamond`, you should probably not aggregate into other functional units than ECs, as the results will be biased:
+If you only want the pathway results, you can use `uniref90_ec_filtered_diamond` or `uniref50_ec_filtered_diamond`.
+
+In that case, you should probably not aggregate into other functional units than ECs, as the results will be biased:
 ```
 params {
   functionalUnits = ["level4ec"]
@@ -93,17 +114,23 @@ process {
    clusterOptions = '-n 4 -M 10000 -R "rusage [mem=10000] span[hosts=1]"'
   }
 }
+```
+
+Memory use for each job depends on the reference size, and input size. To retry failed jobs with more memory, you could modify the config as follows:
 
 ```
-## How to provide input
-File with two or three columns in the TSV format:
+  withLabel: 'mem_4c' {
+    errorStrategy = { task.exitStatus in 130..140 ? 'retry' : 'terminate' }
+    maxRetries = 3
+    clusterOptions = { task.attempt == 1 ?
+      '-n 4 -M 12000 -R \"rusage [mem=12000] span[hosts=1]\"'
+      : task.attempt == 2 ?
+      '-n 4 -M 17000 -R \"rusage [mem=17000] span[hosts=1]\"'
+      : '-n 4 -M 25000 -R \"rusage [mem=25000] span[hosts=1]\"'
+    }
+  }
 
 ```
-sample	fastq URL [second fastq URL]
-```
-for single or paired read files. The fastqs will be fetched using `wget`.
-
-The pipeline currently doesn't support providing filesystem paths but it wouldn't be hard to modify it!
 
 
 ## Output format
