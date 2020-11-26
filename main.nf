@@ -6,14 +6,8 @@ sampleToFastqLocationsBunzips = Channel
   .filter{it[1].endsWith(".tar.bz2")}
 
 process prepareReadsBunzips {
-  errorStrategy { 
-    if (task.exitStatus == 8 ) {
-      return 'retry' 
-    } else {
-      return 'terminate' 
-    }
-  }
-  maxRetries 10
+  label 'mem'
+
   maxForks 5
 
   afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
