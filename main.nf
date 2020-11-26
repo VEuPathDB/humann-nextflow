@@ -1,7 +1,50 @@
+
+sampleToFastqLocationsBunzips = Channel
+  .fromPath(params.sampleToFastqsPath)
+  .splitCsv(sep: "\t")
+  .filter {it.size() == 2}
+  .filter{it[1].endsWith(".tar.bz2")}
+
+process prepareReadsBunzips {
+  errorStrategy { 
+    if (task.exitStatus == 8 ) {
+      return 'retry' 
+    } else {
+      return 'terminate' 
+    }
+  }
+  maxRetries 10
+  maxForks 5
+
+  afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
+
+  input:
+  tuple val(sample), val(bunzip) from sampleToFastqLocationsBunzips
+
+  output:
+  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsBunzips
+
+  script:
+  """
+  ${params.wgetCommand} $bunzip -O reads.tar.bz2
+  bunzip2 *.bz2
+  tar -xvf *.tar
+ 
+  ${params.kneaddataCommand} \
+    \$(perl -e 'print join " ", map {"--input \$_" } grep {\$_!~/singleton/ } @ARGV' ${sample}/* ) \
+    --output . --cat-final-output
+
+  mv -v *_kneaddata.fastq reads_kneaddata.fastq
+  test -f reads_kneaddata.fastq
+  """
+
+}
+
 sampleToFastqLocationsSingle = Channel
   .fromPath(params.sampleToFastqsPath)
   .splitCsv(sep: "\t")
   .filter {it.size() == 2}
+  .filter{!it[1].endsWith(".tar.bz2")}
 process prepareReadsSingle {
   errorStrategy { 
     sleep(Math.pow(2, task.attempt) * 500 as long);
@@ -69,7 +112,7 @@ process prepareReadsPaired {
 
 }
 
-kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired)
+kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzips)
 
 
 process runHumann {
