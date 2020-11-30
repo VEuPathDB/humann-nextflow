@@ -6,11 +6,9 @@ sampleToFastqLocationsBunzips = Channel
   .filter{it[1].endsWith(".tar.bz2")}
 
 process prepareReadsBunzips {
-  label 'mem'
+  label 'mem_bowtie2_to_hg37'
 
   maxForks 5
-
-  afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
 
   input:
   tuple val(sample), val(bunzip) from sampleToFastqLocationsBunzips
@@ -110,9 +108,9 @@ kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzip
 
 
 process runHumann {
-  label 'mem_4c'
+  label 'mem_diamond_to_uniref'
 
-  afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
+  afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv '
 
   input:
   tuple val(sample), file(kneadedReads) from kneadedReads
@@ -126,7 +124,7 @@ process runHumann {
   script:
   """
   ln -vs $kneadedReads reads.fastq
-  ${params.humannCommand} --threads 4 --input reads.fastq --output .
+  ${params.humannCommand} --input reads.fastq --output .
 
   mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.metaphlan.out
   
