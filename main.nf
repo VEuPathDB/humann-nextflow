@@ -10,6 +10,8 @@ process prepareReadsBunzips {
 
   maxForks 5
 
+  afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
+
   input:
   tuple val(sample), val(bunzip) from sampleToFastqLocationsBunzips
 
@@ -110,7 +112,7 @@ kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzip
 process runHumann {
   label 'mem_diamond_to_uniref'
 
-  afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv '
+  afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
 
   input:
   tuple val(sample), file(kneadedReads) from kneadedReads
