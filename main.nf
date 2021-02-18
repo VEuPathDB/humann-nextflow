@@ -6,9 +6,7 @@ sampleToFastqLocationsBunzips = Channel
   .filter{it[1].endsWith(".tar.bz2")}
 
 process prepareReadsBunzips {
-  label 'mem_bowtie2_to_hg37'
-
-  maxForks 5
+  label 'download_and_preprocess'
 
   afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
 
@@ -40,16 +38,8 @@ sampleToFastqLocationsSingle = Channel
   .filter {it.size() == 2}
   .filter{!it[1].endsWith(".tar.bz2")}
 process prepareReadsSingle {
-  errorStrategy { 
-    sleep(Math.pow(2, task.attempt) * 500 as long);
-    if (task.exitStatus == 8 || task.attempt < 4 ) {
-      return 'retry' 
-    } else {
-      return 'terminate' 
-    }
-  }
-  maxRetries 10
-  maxForks 5
+
+  label 'download_and_preprocess'
 
   afterScript 'rm -v reads.fastq'
 
@@ -75,16 +65,8 @@ sampleToFastqLocationsPaired = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 3}
 process prepareReadsPaired {
-  errorStrategy { 
-    sleep(Math.pow(2, task.attempt) * 500 as long);
-    if (task.exitStatus == 8 || task.attempt < 4 ) {
-      return 'retry' 
-    } else {
-      return 'terminate' 
-    }
-  }
-  maxRetries 10
-  maxForks 5
+
+  label 'download_and_preprocess'
 
   afterScript 'rm -v reads.fastq reads_R.fastq.gz'
 
@@ -110,7 +92,6 @@ kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzip
 
 
 process runHumann {
-  label 'mem_diamond_to_uniref'
 
   afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
 
