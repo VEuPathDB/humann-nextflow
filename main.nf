@@ -8,7 +8,7 @@ sampleToFastqLocationsBunzips = Channel
 process prepareReadsBunzips {
   label 'download_and_preprocess'
 
-  afterScript "rm -v reads.tar ${sample}/*fastq ${sample}.*fastq"
+  afterScript "rm -v reads.tar ${sample}/*fastq* ${sample}.*fastq*"
 
   input:
   tuple val(sample), val(bunzip) from sampleToFastqLocationsBunzips
@@ -41,7 +41,7 @@ process prepareReadsSingle {
 
   label 'download_and_preprocess'
 
-  afterScript 'rm -v reads.fastq'
+  afterScript 'rm -v reads.fastq*'
 
   input:
   tuple val(sample), val(fastq) from sampleToFastqLocationsSingle
@@ -68,7 +68,7 @@ process prepareReadsPaired {
 
   label 'download_and_preprocess'
 
-  afterScript 'rm -v reads.fastq reads_R.fastq.gz'
+  afterScript 'rm -v reads.fastq* reads_R.fastq*'
 
   input:
   tuple val(sample), val(fastq1), val(fastq2) from sampleToFastqLocationsPaired
