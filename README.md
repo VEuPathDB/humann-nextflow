@@ -48,6 +48,13 @@ unzip *zip
 
 ```
 
+SRA toolkit:
+Optional, gets used if you specify inputs like sra-paired:SRR001234 or sra-single-SRR112233.
+Needs these on the path:
+```
+# prefetch
+# fastq-dump
+```
 ### Reference databases
 HUMAnN and Kneaddata need reference databases.
 

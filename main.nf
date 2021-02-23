@@ -37,6 +37,8 @@ sampleToFastqLocationsSingle = Channel
   .splitCsv(sep: "\t")
   .filter {it.size() == 2}
   .filter{!it[1].endsWith(".tar.bz2")}
+  .filter{!it[1].matches("^sra-single:[DES]RR[0-9]+\$")}
+  .filter{!it[1].matches("^sra-paired:[DES]RR[0-9]+\$")}
 process prepareReadsSingle {
 
   label 'download_and_preprocess'
@@ -57,7 +59,32 @@ process prepareReadsSingle {
     --input reads.fastq \
     --output .
   """
+}
 
+sampleToFastqLocationsSingleSra = Channel
+  .fromPath(params.sampleToFastqsPath)
+  .splitCsv(sep: "\t")
+  .filter {it.size() == 2}
+  .filter{it[1].matches("^sra-single:[DES]RR[0-9]+\$")}
+process prepareReadsSingleSra {
+
+  label 'download_and_preprocess'
+
+  afterScript 'rm -v reads.fastq*'
+
+  input:
+  tuple val(sample), val(stringWithRunAccession) from sampleToFastqLocationsSingleSra
+
+  output:
+  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsSingleSra
+
+  script:
+  """
+  getFastqFromSraSingle $stringWithRunAccession reads.fastq
+  ${params.kneaddataCommand} \
+    --input reads.fastq \
+    --output .
+  """
 }
 
 sampleToFastqLocationsPaired = Channel
@@ -85,10 +112,36 @@ process prepareReadsPaired {
     --input reads.fastq --input reads_R.fastq --cat-final-output \
     --output .
   """
+}
+
+sampleToFastqLocationsPairedSra = Channel
+  .fromPath(params.sampleToFastqsPath)
+  .splitCsv(sep: "\t")
+  .filter {it.size() == 2}
+  .filter{it[1].matches("^sra-paired:[DES]RR[0-9]+\$")}
+process prepareReadsPairedSra {
+
+  label 'download_and_preprocess'
+
+  afterScript 'rm -v reads.fastq* reads_R.fastq*'
+
+  input:
+  tuple val(sample), val(stringWithRunAccession) from sampleToFastqLocationsPairedSra
+
+  output:
+  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsPairedSra
+
+  script:
+  """
+  getFastqFromSraPaired $stringWithRunAccession reads.fastq reads_R.fastq
+  ${params.kneaddataCommand} \
+    --input reads.fastq --input reads_R.fastq --cat-final-output \
+    --output .
+  """
 
 }
 
-kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzips)
+kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzips).mix(kneadedReadsSingleSra).mix(kneadedReadsPairedSra)
 
 
 process runHumann {
