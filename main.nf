@@ -14,7 +14,7 @@ def fetchRunAccessions( tsv ) {
     return run_accessions
 }
 
-process prepSra {
+process knead {
   label 'prep'
   input:
   tuple val(sample), path(runAccession)
@@ -27,7 +27,6 @@ process prepSra {
   ${params.kneaddataCommand} \
     --input ${sample}.fastq \
     --output . \
-    -db $params.knead_databases
   """
   else if(params.libraryLayout == 'paired')
   """
@@ -36,8 +35,7 @@ process prepSra {
     --input ${sample}_1.fastq \
     --input ${sample}_2.fastq \
     --cat-final-output \
-    --output . \
-    -db $params.knead_databases
+    --output . 
   """
 }
 
@@ -162,7 +160,7 @@ workflow {
   
   accessions = fetchRunAccessions(params.inputPath)
   input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
-  kneadedReads = prepSra(input)
+  kneadedReads = knead(input)
   
   humannOutput = runHumann(kneadedReads)
 
