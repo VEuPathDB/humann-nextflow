@@ -1,5 +1,2 @@
-pairedSRR	sra-paired:SRR11035821
-singleSRR	sra-single:SRR1288691
-SRS047708	https://downloads.hmpdacc.org/dacc/hhs/genome/microbiome/wgs/analysis/hmwgsqc/v1/SRS047708.tar.bz2
-SRS1007613	ftp.sra.ebi.ac.uk/vol1/fastq/SRR211/004/SRR2119804/SRR2119804.fastq.gz
-tiny-test-data-mt	https://github.com/roryk/tiny-test-data/blob/master/wgs/mt_1.fq.gz?raw=true	https://github.com/roryk/tiny-test-data/blob/master/wgs/mt_2.fq.gz?raw=true
+run_accession
+SRR12919600
