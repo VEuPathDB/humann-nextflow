@@ -35,11 +35,6 @@ RUN export KNEADDATA_GIT_COMMIT_SHA=379a7c8a141350d57a988af458d232a21e5bc5f6 \
     && git checkout $KNEADDATA_GIT_COMMIT_SHA \
     && python3 setup.py install
 
-
-RUN humann_config --update database_folders nucleotide /humann_databases/chocophlan
-RUN humann_config --update database_folders protein /humann_databases/uniref
-RUN humann_config --update database_folders utility_mapping /humann_databases/utility_mapping
-
 WORKDIR /gusApp/tools
 
 RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.0/sratoolkit.3.0.0-ubuntu64.tar.gz \
