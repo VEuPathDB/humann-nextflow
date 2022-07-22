@@ -26,14 +26,18 @@ process prepSra {
   gzip -d --force *.fastq.gz
   ${params.kneaddataCommand} \
     --input ${sample}.fastq \
-    --output .
+    --output . \
+    --reference-db $params.knead_databases
   """
   else if(params.libraryLayout == 'paired')
   """
   gzip -d --force *.fastq.gz
   ${params.kneaddataCommand} \
-    --input ${sample}_1.fastq --input ${sample}_2.fastq --cat-final-output \
-    --output .
+    --input ${sample}_1.fastq \
+    --input ${sample}_2.fastq \
+    --cat-final-output \
+    --output . \
+    --reference-db $params.knead_databases
   """
 }
 
