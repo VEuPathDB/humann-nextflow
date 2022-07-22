@@ -1,199 +1,78 @@
+import nextflow.splitter.CsvSplitter
 
-sampleToFastqLocationsBunzips = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter {it.size() == 2}
-  .filter{it[1].endsWith(".tar.bz2")}
+nextflow.enable.dsl=2
 
-process prepareReadsBunzips {
-  label 'download_and_preprocess'
-
-  afterScript "rm -v reads.tar ${sample}/*fastq* ${sample}.*fastq*"
-
-  input:
-  tuple val(sample), val(bunzip) from sampleToFastqLocationsBunzips
-
-  output:
-  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsBunzips
-
-  script:
-  """
-  ${params.wgetCommand} $bunzip -O reads.tar.bz2
-  bunzip2 *.bz2
-  tar -xvf *.tar
- 
-  ${params.kneaddataCommand} \
-    \$(perl -e 'print join " ", map {"--input \$_" } grep {\$_!~/singleton/ } @ARGV' ${sample}/* ) \
-    --output . --cat-final-output
-
-  mv -v *_kneaddata.fastq reads_kneaddata.fastq
-  test -f reads_kneaddata.fastq
-  """
-
+def fetchRunAccessions( tsv ) {
+    def splitter = new CsvSplitter().options( header:true, sep:'\t' )
+    def reader = new BufferedReader( new FileReader( tsv ) )
+    splitter.parseHeader( reader )
+    List<String> run_accessions = []
+    Map<String,String> row
+    while( row = splitter.fetchRecord( reader ) ) {
+       run_accessions.add( row['run_accession'] )
+    }
+    return run_accessions
 }
 
-sampleToFastqLocationsSingle = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter {it.size() == 2}
-  .filter{!it[1].endsWith(".tar.bz2")}
-  .filter{!it[1].matches("^sra-single:[DES]RR[0-9]+\$")}
-  .filter{!it[1].matches("^sra-paired:[DES]RR[0-9]+\$")}
-process prepareReadsSingle {
-
-  label 'download_and_preprocess'
-
-  afterScript 'rm -v reads.fastq*'
-
+process prepSra {
+  label 'prep'
   input:
-  tuple val(sample), val(fastq) from sampleToFastqLocationsSingle
-
+  tuple val(sample), path(runAccession)
   output:
-  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsSingle
-
+  tuple val(sample), path("*_*_kneaddata.fastq")
   script:
+  if(params.libraryLayout == 'single')
   """
-  ${params.wgetCommand} $fastq -O reads.fastq.gz
-  gunzip *gz
+  gzip -d --force *.fastq.gz
   ${params.kneaddataCommand} \
-    --input reads.fastq \
+    --input ${sample}.fastq \
+    --output .
+  """
+  else if(params.libraryLayout == 'paired')
+  """
+  gzip -d --force *.fastq.gz
+  ${params.kneaddataCommand} \
+    --input ${sample}_1.fastq --input ${sample}_2.fastq --cat-final-output \
     --output .
   """
 }
-
-sampleToFastqLocationsSingleSra = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter {it.size() == 2}
-  .filter{it[1].matches("^sra-single:[DES]RR[0-9]+\$")}
-process prepareReadsSingleSra {
-
-  label 'download_and_preprocess'
-
-  afterScript 'rm -v reads.fastq*'
-
-  input:
-  tuple val(sample), val(stringWithRunAccession) from sampleToFastqLocationsSingleSra
-
-  output:
-  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsSingleSra
-
-  script:
-  """
-  getFastqFromSraSingle $stringWithRunAccession reads.fastq
-  ${params.kneaddataCommand} \
-    --input reads.fastq \
-    --output .
-  """
-}
-
-sampleToFastqLocationsPaired = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter {it.size() == 3}
-process prepareReadsPaired {
-
-  label 'download_and_preprocess'
-
-  afterScript 'rm -v reads.fastq* reads_R.fastq*'
-
-  input:
-  tuple val(sample), val(fastq1), val(fastq2) from sampleToFastqLocationsPaired
-
-  output:
-  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsPaired
-
-  script:
-  """
-  ${params.wgetCommand} $fastq1 -O reads.fastq.gz
-  ${params.wgetCommand} $fastq2 -O reads_R.fastq.gz
-  gunzip *gz
-  ${params.kneaddataCommand} \
-    --input reads.fastq --input reads_R.fastq --cat-final-output \
-    --output .
-  """
-}
-
-sampleToFastqLocationsPairedSra = Channel
-  .fromPath(params.sampleToFastqsPath)
-  .splitCsv(sep: "\t")
-  .filter {it.size() == 2}
-  .filter{it[1].matches("^sra-paired:[DES]RR[0-9]+\$")}
-process prepareReadsPairedSra {
-
-  label 'download_and_preprocess'
-
-  afterScript 'rm -v reads.fastq* reads_R.fastq*'
-
-  input:
-  tuple val(sample), val(stringWithRunAccession) from sampleToFastqLocationsPairedSra
-
-  output:
-  tuple val(sample), file("reads_kneaddata.fastq") into kneadedReadsPairedSra
-
-  script:
-  """
-  getFastqFromSraPaired $stringWithRunAccession reads.fastq reads_R.fastq
-  ${params.kneaddataCommand} \
-    --input reads.fastq --input reads_R.fastq --cat-final-output \
-    --output .
-  """
-
-}
-
-kneadedReads = kneadedReadsSingle.mix(kneadedReadsPaired).mix(kneadedReadsBunzips).mix(kneadedReadsSingleSra).mix(kneadedReadsPairedSra)
-
 
 process runHumann {
-
   afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
-
   input:
-  tuple val(sample), file(kneadedReads) from kneadedReads
-
+  tuple val(sample), path(kneadedReads)
   output:
-  file("${sample}.metaphlan.out") into taxonAbundances
-  tuple val(sample), file("${sample}.gene_abundance.tsv") into geneAbundances
-  file("${sample}.pathway_abundance.tsv") into pathwayAbundances
-  file("${sample}.pathway_coverage.tsv") into pathwayCoverages
+  file("${sample}.metaphlan.out")
+  tuple val(sample), file("${sample}.gene_abundance.tsv")
+  file("${sample}.pathway_abundance.tsv")
+  file("${sample}.pathway_coverage.tsv")
 
   script:
   """
-  ln -vs $kneadedReads reads.fastq
+  humann_config --update database_folders nucleotide "$params.humann_databases/chocophlan"
+  humann_config --update database_folders protein "$params.humann_databases/uniref"
+  humann_config --update database_folders utility_mapping "$params.humann_databases/utility_mapping" 
+  ln -vs -f $kneadedReads reads.fastq
   ${params.humannCommand} --input reads.fastq --output .
-
   mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.metaphlan.out
-  
   humann_renorm_table --input reads_genefamilies.tsv --output ${sample}.gene_abundance.tsv --units cpm --update-snames
-
   mv -v reads_pathabundance.tsv ${sample}.pathway_abundance.tsv
   mv -v reads_pathcoverage.tsv ${sample}.pathway_coverage.tsv
   """
-
 }
 
-functionalUnitNames = [
-  eggnog: "eggnog",
-  go: "go",
-  ko: "kegg-orthology",
-  level4ec: "ec",
-  pfam: "pfam",
-  rxn: "metacyc-rxn",
-]
-
 process groupFunctionalUnits {
-
   input:
-  tuple val(sample), file(geneAbundances) from geneAbundances
-  each (groupType) from params.functionalUnits
-
+  tuple val(sample), file(geneAbundances)
+  each (groupType)
+  val functionalUnitNames
   output:
-  file("${sample}.${groupType}.tsv") into functionAbundances
-
+  file("${sample}.${groupType}.tsv") 
   script:
   group=params.unirefXX + "_" + groupType
   groupName=functionalUnitNames[groupType]
   """
+  humann_config --update database_folders utility_mapping "$params.humann_databases/utility_mapping" 
   humann_regroup_table --input $geneAbundances --output ${group}.tsv --groups ${group}
   humann_rename_table --input ${group}.tsv --output ${sample}.${groupType}.tsv --names ${groupName}
   """
@@ -203,8 +82,8 @@ process aggregateFunctionAbundances {
   publishDir params.resultDir, mode: 'move'
 
   input:
-  file('*') from functionAbundances.collect()
-  each (groupType) from params.functionalUnits
+  file('*') 
+  each (groupType) 
 
   output:
   file("${groupType}s.tsv")
@@ -219,7 +98,7 @@ process aggregateTaxonAbundances {
   publishDir params.resultDir, mode: 'move'
 
   input:
-  file('*') from taxonAbundances.collect()
+  file('*') 
 
 
   output:
@@ -240,7 +119,7 @@ process aggregatePathwayAbundances {
   publishDir params.resultDir, mode: 'move'
 
   input:
-  file('*') from pathwayAbundances.collect()
+  file('*') 
 
   output:
   file("pathway_abundances.tsv")
@@ -255,7 +134,7 @@ process aggregatePathwayCoverages {
   publishDir params.resultDir, mode: 'move'
 
   input:
-  file('*') from pathwayCoverages.collect()
+  file('*') 
 
   output:
   file("pathway_coverages.tsv")
@@ -266,3 +145,33 @@ process aggregatePathwayCoverages {
   """
 }
 
+workflow {
+
+  functionalUnitNames = [
+  eggnog: "eggnog",
+  go: "go",
+  ko: "kegg-orthology",
+  level4ec: "ec",
+  pfam: "pfam",
+  rxn: "metacyc-rxn",
+  ]
+  
+  accessions = fetchRunAccessions(params.inputPath)
+  input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
+  kneadedReads = prepSra(input)
+  
+  humannOutput = runHumann(kneadedReads)
+
+  taxonAbundances = humannOutput[0].collect()
+  aggregateTaxonAbundances(taxonAbundances)
+
+  functionAbundances = groupFunctionalUnits(humannOutput[1], params.functionalUnits, functionalUnitNames )
+  functionAbundancesCollected = functionAbundances.collect()
+  aggregateFunctionAbundances(functionAbundancesCollected, params.functionalUnits)
+
+  pathwayAbundances = humannOutput[2].collect()
+  aggregatePathwayAbundances(pathwayAbundances)
+
+  pathwayCoverages = humannOutput[3].collect()
+  aggregatePathwayCoverages(pathwayCoverages)
+}
