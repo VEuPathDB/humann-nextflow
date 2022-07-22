@@ -27,7 +27,7 @@ process prepSra {
   ${params.kneaddataCommand} \
     --input ${sample}.fastq \
     --output . \
-    --reference-db $params.knead_databases
+    -db $params.knead_databases
   """
   else if(params.libraryLayout == 'paired')
   """
@@ -37,7 +37,7 @@ process prepSra {
     --input ${sample}_2.fastq \
     --cat-final-output \
     --output . \
-    --reference-db $params.knead_databases
+    -db $params.knead_databases
   """
 }
 
