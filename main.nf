@@ -15,7 +15,6 @@ def fetchRunAccessions( tsv ) {
 }
 
 process knead {
-  label 'prep'
   input:
   tuple val(sample), path(runAccession)
   output:
@@ -26,7 +25,7 @@ process knead {
   gzip -d --force *.fastq.gz
   ${params.kneaddataCommand} \
     --input ${sample}.fastq \
-    --output . \
+    --output . 
   """
   else if(params.libraryLayout == 'paired')
   """
