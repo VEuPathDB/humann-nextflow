@@ -27,19 +27,19 @@ The results are merged and returned as a single file per result type.
 ### Reference databases
 HUMAnN and Kneaddata need reference databases.
 
-Uniref90
+* Uniref90
 http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/uniref90_annotated_v201901.tar.gz
 
-Uniref50
+* Uniref50
 http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/uniref50_annotated_v201901.tar.gz
 
-Chocophlan
+* Chocophlan
 http://cmprod1.cibio.unitn.it/biobakery3/metaphlan_databases/mpa_v31_CHOCOPhlAn_201901.tar
 
-utility_mapping
+* utility_mapping
 http://huttenhower.sph.harvard.edu/humann_data/full_mapping_v201901.tar.gz
 
-kneaddata
+* kneaddata
 http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg37_and_human_contamination_Bowtie2_v0.1.tar.gz
 
 ### Choosing the reference protein set
