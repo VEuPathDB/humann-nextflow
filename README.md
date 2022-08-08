@@ -16,8 +16,6 @@ The fastqs are downloaded locally, trimmed ("kneaded") with `kneaddata`, and - i
 Then `humann` is ran on each input, with specified CPU and memory.
 The results are merged and returned as a single file per result type.
 
-![diagram](https://raw.githubusercontent.com/wbazant/humann-nextflow/master/flowchart.svg)
-
 ## Install
 * Install Nextflow
     `curl https://get.nextflow.io | bash`
