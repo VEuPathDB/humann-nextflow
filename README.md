@@ -3,8 +3,7 @@
 Runs humann for a list of samples.
 
 In:
-- list of sample + fastq URLs
-- configuration
+- File of SRRIDS.tsv (format like data/sample-to-fastqs.tsv)
 
 Out:
 - species tables from metaphlan
@@ -17,70 +16,31 @@ The fastqs are downloaded locally, trimmed ("kneaded") with `kneaddata`, and - i
 Then `humann` is ran on each input, with specified CPU and memory.
 The results are merged and returned as a single file per result type.
 
-![diagram](https://raw.githubusercontent.com/wbazant/humann-nextflow/master/flowchart.svg)
-
-
-
 ## Install
-pip3, metaphlan, and humann:
-```
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-~/.local/bin/pip3 install {cython, numpy, metaphlan, humann, kneaddata}
-```
+* Install Nextflow
+    `curl https://get.nextflow.io | bash`
+* Install Docker
 
-diamond:
-```
-wget http://github.com/bbuchfink/diamond/releases/download/v2.0.2/diamond-linux64.tar.gz
-tar xzf diamond-linux64.tar.gz
-```
-minpath:
-```
-cd ~/lib
-wget 'https://omics.informatics.indiana.edu/mg/get.php?justdoit=yes&software=minpath1.4.tar.gz' -O minpath1.4.tar.gz
+* Databases need to be installed and bound to the docker container
+`docker run -it -d -v <path-to-dir-containing-chocophlan-uniref-and-utility_mapping-databases>:/humann_databases -v <path-to-kneaddata-databases>:/kneaddata_databases -v <path-to-dir-containing-metaphlanv31-database>:/usr/local/lib/python3.8/dist-packages/metaphlan/metaphlan_databases/ veupathdb/humann`
 
-```
-
-trimmomatic:
-```
-cd ~/lib
-wget 'http://www.usadellab.org/cms/uploads/supplementary/Trimmomatic/Trimmomatic-0.39.zip'
-unzip *zip
-
-```
-
-SRA toolkit:
-Optional, gets used if you specify inputs like sra-paired:SRR001234 or sra-single-SRR112233.
-Needs these on the path:
-```
-# prefetch
-# fastq-dump
-```
 ### Reference databases
 HUMAnN and Kneaddata need reference databases.
 
-```
-kneaddata_database --download human_genome bowtie2 ~/kneaddata_databases/
+* Uniref90
+http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/uniref90_annotated_v201901.tar.gz
 
-humann_databases chocophlan full ~/humann_databases
-humann_databases uniref uniref90_diamond ~/humann_databases
-humann_databases utility_mapping full ~/humann_databases
-```
+* Uniref50
+http://huttenhower.sph.harvard.edu/humann_data/uniprot/uniref_annotated/uniref50_annotated_v201901.tar.gz
 
-MetaPHlAn will come preconfigured - its installation comes with its own ChocoPhlAn.
-## Configuration guide
+* Chocophlan
+http://cmprod1.cibio.unitn.it/biobakery3/metaphlan_databases/mpa_v31_CHOCOPhlAn_201901.tar
 
-### How to provide input
-Prepare a file with two or three columns in the TSV format:
+* utility_mapping
+http://huttenhower.sph.harvard.edu/humann_data/full_mapping_v201901.tar.gz
 
-```
-sample	fastq URL [second fastq URL]
-```
-for single or paired read files. The fastqs will be fetched using `wget`.
-
-and place it under the path `data/sample-to-fastqs.tsv` or modify the config.
-
-The pipeline currently doesn't support providing filesystem paths but it wouldn't be hard to modify it!
-
+* kneaddata
+http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg37_and_human_contamination_Bowtie2_v0.1.tar.gz
 
 ### Choosing the reference protein set
 `uniref50_diamond` might be more economical than `uniref90_diamond`.
@@ -89,15 +49,6 @@ In that case, modify or override `nextflow.config` as follows:
 ```
 params {
   unirefXX = 'uniref50'
-}
-```
-
-If you only want the pathway results, you can use `uniref90_ec_filtered_diamond` or `uniref50_ec_filtered_diamond`.
-
-In that case, you should probably not aggregate into other functional units than ECs, as the results will be biased:
-```
-params {
-  functionalUnits = ["level4ec"]
 }
 ```
 
