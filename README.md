@@ -42,6 +42,9 @@ http://huttenhower.sph.harvard.edu/humann_data/full_mapping_v201901.tar.gz
 * kneaddata
 http://huttenhower.sph.harvard.edu/kneadData_databases/Homo_sapiens_hg37_and_human_contamination_Bowtie2_v0.1.tar.gz
 
+* metaphlan_database
+http://cmprod1.cibio.unitn.it/biobakery3/metaphlan_databases/mpa_v31_CHOCOPhlAn_201901.tar
+
 ### Choosing the reference protein set
 `uniref50_diamond` might be more economical than `uniref90_diamond`.
 
