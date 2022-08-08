@@ -1,6 +1,5 @@
 FROM ubuntu:20.04
 
-
 WORKDIR /gusApp
 WORKDIR /gusApp/project_home
 
@@ -12,19 +11,24 @@ RUN DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC apt-get install -y \
     openjdk-8-jdk \
     python3-pip \
     git \
-    trimmomatic=0.39+dfsg-1
+    trimmomatic=0.39+dfsg-1 
 
-RUN apt-get install -y libbz2-dev liblzma-dev
+RUN apt-get install -y libbz2-dev liblzma-dev 
 
 RUN pip3 install cython==0.29.30
 RUN pip3 install numpy==1.23.1
 RUN pip3 install metaphlan==3.0.14
 
+COPY bin/config.py /gusApp/project_home/
 
 RUN export HUMANN_GIT_COMMIT_SHA=13e8c7910d9aff4cabb58df19aa652a3c20e101b \
     && git clone https://github.com/wbazant/humann.git \
     && cd humann \
     && git checkout $HUMANN_GIT_COMMIT_SHA \
+    && cd humann \
+    && rm config.py \
+    && mv /gusApp/project_home/config.py . \
+    && cd .. \
     && python3 setup.py install
 
 WORKDIR /gusApp/project_home
@@ -50,7 +54,6 @@ RUN mkdir -p /root/.ncbi
 RUN printf '/LIBS/GUID = "%s"\n' `uuidgen` > /root/.ncbi/user-settings.mkfg
 RUN printf '/libs/cloud/report_instance_identity = "true"\n' >> /root/.ncbi/user-settings.mkfg
 RUN printf '/libs/cloud/accept_aws_charges = "false"\n/libs/cloud/accept_gcp_charges = "false"\n' >> /root/.ncbi/user-settings.mkfg
-
 
 COPY bin/* /usr/local/bin/
 

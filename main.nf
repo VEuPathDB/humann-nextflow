@@ -14,34 +14,42 @@ def fetchRunAccessions( tsv ) {
     return run_accessions
 }
 
-process knead {
+process downloadAndKnead {
+  label 'download_and_preprocess'
+
   input:
-  tuple val(sample), path(runAccession)
+  val id
+
   output:
-  tuple val(sample), path("*_*_kneaddata.fastq")
+  tuple val(id), path("*_*_kneaddata.fastq")
+
   script:
   if(params.libraryLayout == 'single')
   """
-  gzip -d --force *.fastq.gz
+  fasterq-dump --split-3 ${id}
   ${params.kneaddataCommand} \
-    --input ${sample}.fastq \
+    --input ${id}_1.fastq \
     --output . 
   """
+
   else if(params.libraryLayout == 'paired')
   """
-  gzip -d --force *.fastq.gz
+  fasterq-dump --split-3 ${id}
   ${params.kneaddataCommand} \
-    --input ${sample}_1.fastq \
-    --input ${sample}_2.fastq \
+    --input ${id}_1.fastq \
+    --input ${id}_2.fastq \
     --cat-final-output \
     --output . 
   """
 }
 
 process runHumann {
+
   afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
+
   input:
   tuple val(sample), path(kneadedReads)
+
   output:
   file("${sample}.metaphlan.out")
   tuple val(sample), file("${sample}.gene_abundance.tsv")
@@ -50,32 +58,48 @@ process runHumann {
 
   script:
   """
-  humann_config --update database_folders nucleotide "$params.humann_databases/chocophlan"
-  humann_config --update database_folders protein "$params.humann_databases/uniref"
-  humann_config --update database_folders utility_mapping "$params.humann_databases/utility_mapping" 
-  ln -vs -f $kneadedReads reads.fastq
-  ${params.humannCommand} --input reads.fastq --output .
+  ln -vs -f $kneadedReads unfixed.fastq
+  perl /usr/local/bin/fixKnead.pl -filename unfixed.fastq > reads.fastq
+  
+  ${params.humannCommand} \
+    --input reads.fastq \
+    --output .
+  
   mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv ${sample}.metaphlan.out
-  humann_renorm_table --input reads_genefamilies.tsv --output ${sample}.gene_abundance.tsv --units cpm --update-snames
+  
+  humann_renorm_table \
+    --input reads_genefamilies.tsv \
+    --output ${sample}.gene_abundance.tsv \
+    --units cpm 
+    --update-snames
+  
   mv -v reads_pathabundance.tsv ${sample}.pathway_abundance.tsv
   mv -v reads_pathcoverage.tsv ${sample}.pathway_coverage.tsv
   """
 }
 
 process groupFunctionalUnits {
+
   input:
   tuple val(sample), file(geneAbundances)
   each (groupType)
   val functionalUnitNames
+
   output:
   file("${sample}.${groupType}.tsv") 
+
   script:
   group=params.unirefXX + "_" + groupType
   groupName=functionalUnitNames[groupType]
   """
-  humann_config --update database_folders utility_mapping "$params.humann_databases/utility_mapping" 
-  humann_regroup_table --input $geneAbundances --output ${group}.tsv --groups ${group}
-  humann_rename_table --input ${group}.tsv --output ${sample}.${groupType}.tsv --names ${groupName}
+  humann_regroup_table \
+    --input $geneAbundances \
+    --output ${group}.tsv \
+    --groups ${group}
+  humann_rename_table \
+    --input ${group}.tsv \
+    --output ${sample}.${groupType}.tsv \
+    --names ${groupName}
   """
 }
 
@@ -158,8 +182,8 @@ workflow {
   ]
   
   accessions = fetchRunAccessions(params.inputPath)
-  input = Channel.fromSRA(accessions, apiKey: params.apiKey, protocol: "http")
-  kneadedReads = knead(input)
+  ids = Channel.fromList(accessions)
+  kneadedReads = downloadAndKnead(ids)
   
   humannOutput = runHumann(kneadedReads)
 
@@ -167,6 +191,7 @@ workflow {
   aggregateTaxonAbundances(taxonAbundances)
 
   functionAbundances = groupFunctionalUnits(humannOutput[1], params.functionalUnits, functionalUnitNames )
+
   functionAbundancesCollected = functionAbundances.collect()
   aggregateFunctionAbundances(functionAbundancesCollected, params.functionalUnits)
 
