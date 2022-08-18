@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
 ln -vs -f $kneadedReads unfixed.fastq
 perl /usr/local/bin/fixKnead.pl -filename unfixed.fastq > reads.fastq
 ${params.humannCommand} --input reads.fastq --output .

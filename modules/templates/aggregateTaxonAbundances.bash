@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
 merge_metaphlan_tables.py *.metaphlan.out \
    | grep -v '^#' \
    | cut -f 1,3- \
