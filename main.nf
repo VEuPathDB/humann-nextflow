@@ -24,7 +24,7 @@ if(params.downloadMethod == 'sra') {
   input = fetchRunAccessions(params.inputPath)
 }
 else if (params.downloadMethod == 'local') {
-  input = Channel.fromFilePairs(params.localFileLocation + "/*_{1,2}.fastq")
+  input = Channel.fromFilePairs(params.inputPath + "/*_{1,2}.fastq")
 }
 else {
   throw new Exception("Non-valid value for params.downloadMethod")
