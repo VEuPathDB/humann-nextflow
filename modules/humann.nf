@@ -1,5 +1,4 @@
 #!/usr/bin/env nextflow
-import nextflow.splitter.CsvSplitter
 nextflow.enable.dsl=2
 
 
@@ -25,10 +24,10 @@ process knead {
     tuple val(id), path("*_*_kneaddata.fastq")
 
   script:
-  if(params.libraryLayout == 'single')
-    template 'kneadSingle.bash'
-  else if(params.libraryLayout == 'paired')
-    template 'kneadPaired.bash'
+    if(params.libraryLayout == 'single')
+      template 'kneadSingle.bash'
+    else if(params.libraryLayout == 'paired')
+      template 'kneadPaired.bash'
 }
 
 process runHumann {
