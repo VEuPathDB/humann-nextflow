@@ -142,9 +142,12 @@ workflow humann {
     if (params.downloadMethod == 'sra') {
       ids = Channel.fromList(input)
       files = downloadFiles(ids)
+      kneadedReads = knead(files)
     }
-  
-    kneadedReads = knead(input)
+    else {
+      kneadedReads = knead(input)
+    }
+    
     humannOutput = runHumann(kneadedReads)
 
     taxonAbundances = humannOutput[0].collect()
