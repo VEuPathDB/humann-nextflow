@@ -24,9 +24,9 @@ process knead {
     tuple val(id), path("*_*_kneaddata.fastq")
 
   script:
-    if(params.libraryLayout == 'single')
+    if(params.libraryLayout.toLowerCase() == 'single')
       template 'kneadSingle.bash'
-    else if(params.libraryLayout == 'paired')
+    else if(params.libraryLayout.toLowerCase() == 'paired')
       template 'kneadPaired.bash'
 }
 
@@ -37,10 +37,10 @@ process runHumann {
     tuple val(sample), path(kneadedReads)
 
   output:
-    file("${sample}.metaphlan.out")
-    tuple val(sample), file("${sample}.gene_abundance.tsv")
-    file("${sample}.pathway_abundance.tsv")
-    file("${sample}.pathway_coverage.tsv")
+    path("${sample}.metaphlan.out"), emit: metaphlan_output
+    tuple val(sample), file("${sample}.gene_abundance.tsv"), emit: sample_geneabundance_tuple
+    path("${sample}.pathway_abundance.tsv"), emit: pathway_abundance
+    path("${sample}.pathway_coverage.tsv"), emit: pathway_coverage
 
   script:
     template 'runHumann.bash'
@@ -139,7 +139,7 @@ workflow humann {
     rxn: "metacyc-rxn",
     ]
 
-    if (params.downloadMethod == 'sra') {
+    if (params.downloadMethod.toLowerCase() == 'sra') {
       ids = Channel.fromList(input)
       files = downloadFiles(ids)
       kneadedReads = knead(files)
@@ -150,16 +150,16 @@ workflow humann {
     
     humannOutput = runHumann(kneadedReads)
 
-    taxonAbundances = humannOutput[0].collect()
+    taxonAbundances = humannOutput.metaphlan_output.collect()
     aggregateTaxonAbundances(taxonAbundances)
 
-    functionAbundances = groupFunctionalUnits(humannOutput[1], params.functionalUnits, functionalUnitNames )
+    functionAbundances = groupFunctionalUnits(humannOutput.sample_geneabundance_tuple, params.functionalUnits, functionalUnitNames )
     functionAbundancesCollected = functionAbundances.collect()
     aggregateFunctionAbundances(functionAbundancesCollected, params.functionalUnits)
 
-    pathwayAbundances = humannOutput[2].collect()
+    pathwayAbundances = humannOutput.pathway_abundance.collect()
     aggregatePathwayAbundances(pathwayAbundances)
 
-    pathwayCoverages = humannOutput[3].collect()
+    pathwayCoverages = humannOutput.pathway_coverage.collect()
     aggregatePathwayCoverages(pathwayCoverages)
 }

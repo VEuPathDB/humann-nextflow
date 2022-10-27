@@ -20,11 +20,19 @@ def fetchRunAccessions( tsv ) {
 // Param Checking 
 //---------------------------------------------------------------
 
-if(params.downloadMethod == 'sra') {
+if(params.downloadMethod.toLowerCase() == 'sra') {
   input = fetchRunAccessions(params.inputPath)
 }
-else if (params.downloadMethod == 'local') {
-  input = Channel.fromFilePairs(params.inputPath + "/*_{1,2}.fastq")
+else if (params.downloadMethod.toLowerCase() == 'local') {
+  if (params.libraryLayout.toLowerCase() == 'paired') {
+    input = Channel.fromFilePairs(params.inputPath + "/*_{1,2}.fastq")
+  }
+  else if (params.libraryLayout.toLowerCase() == 'single') {
+    input = Channel.fromPath(params.inputPath + "/*.fastq").map { file -> tuple(file.baseName, [file]) }
+  }
+  else {
+    throw new Exception("Non-valid value for params.libraryLayout")
+  }
 }
 else {
   throw new Exception("Non-valid value for params.downloadMethod")
