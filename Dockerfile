@@ -32,11 +32,7 @@ RUN export HUMANN_GIT_COMMIT_SHA=13e8c7910d9aff4cabb58df19aa652a3c20e101b \
 
 WORKDIR /gusApp/project_home
 
-RUN export KNEADDATA_GIT_COMMIT_SHA=379a7c8a141350d57a988af458d232a21e5bc5f6 \
-    && git clone https://github.com/wbazant/kneaddata.git \
-    && cd kneaddata \
-    && git checkout $KNEADDATA_GIT_COMMIT_SHA \
-    && python3 setup.py install
+RUN  pip3 install kneaddata
 
 RUN humann_config --update database_folders nucleotide /humann_databases/chocophlan
 RUN humann_config --update database_folders protein /humann_databases/uniref

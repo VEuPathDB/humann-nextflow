@@ -2,7 +2,7 @@
 
 set -euo pipefail
 ${params.kneaddataCommand} \
-  --input ${id}_1.fastq \
-  --input ${id}_2.fastq \
+  -i1 ${id}_1.fastq \
+  -i2 ${id}_2.fastq \
   --cat-final-output \
-  --output .
+  -o .
