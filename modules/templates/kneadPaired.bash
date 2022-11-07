@@ -2,7 +2,9 @@
 
 set -euo pipefail
 ${params.kneaddataCommand} \
-  -i1 ${id}_1.fastq \
-  -i2 ${id}_2.fastq \
+  --mateIds_are_equal ${params.mateIds_are_equal} \
+  --query_mate_separator ${params.query_mate_separator} \
+  --input ${id}_1.fastq \
+  --input ${id}_2.fastq \
   --cat-final-output \
   -o .
