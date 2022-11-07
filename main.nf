@@ -38,6 +38,26 @@ else {
   throw new Exception("Non-valid value for params.downloadMethod")
 }
 
+if(!params.mateIds_are_equal) {
+  if(params.downloadMethod.toLowerCase() == 'sra') {
+    params.mateIds_are_equal = 'True'
+  }
+  else if (params.downloadMethod.toLowerCase() == 'local') {
+    params.mateIds_are_equal = 'False'
+  }
+}
+
+// Setting Defaults If Parameters Do Not Exist
+
+if(!params.query_mate_separator) {
+  if(params.downloadMethod.toLowerCase() == 'sra') {
+    params.query_mate_separator = "."
+  }
+  else if (params.downloadMethod.toLowerCase() == 'local') {
+    params.query_mate_separator = "/"
+  }
+}
+
 //---------------------------------------------------------------
 // Includes
 //---------------------------------------------------------------
