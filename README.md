@@ -1,5 +1,47 @@
 # Humann(+wget, kneaddata) in a Nextflow pipeline
 
+***<p align=center>loadSingleExperiment</p>***  
+```mermaid
+flowchart TD
+    p0((Channel.fromFilePairs))
+    p1[humann:knead]
+    p2[humann:runHumann]
+    p3([collect])
+    p4[humann:aggregateTaxonAbundances]
+    p5(( ))
+    p6(( ))
+    p7(( ))
+    p8[humann:groupFunctionalUnits]
+    p9([collect])
+    p10(( ))
+    p11[humann:aggregateFunctionAbundances]
+    p12(( ))
+    p13([collect])
+    p14[humann:aggregatePathwayAbundances]
+    p15(( ))
+    p16([collect])
+    p17[humann:aggregatePathwayCoverages]
+    p18(( ))
+    p0 -->|input| p1
+    p1 --> p2
+    p2 --> p3
+    p2 --> p8
+    p2 --> p13
+    p2 --> p16
+    p3 -->|taxonAbundances| p4
+    p4 --> p5
+    p6 --> p8
+    p7 -->|functionalUnitNames| p8
+    p8 --> p9
+    p9 -->|functionAbundancesCollected| p11
+    p10 --> p11
+    p11 --> p12
+    p13 -->|pathwayAbundances| p14
+    p14 --> p15
+    p16 -->|pathwayCoverages| p17
+    p17 --> p18
+```
+
 Runs humann for a list of samples.
 
 In:
