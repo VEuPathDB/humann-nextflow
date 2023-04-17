@@ -15,10 +15,13 @@ my @idArray = split(/,/, $idList);
 foreach my $id (@idArray){
 
     system("fasterq-dump --split-3 ${id}");
-    if(-e "${strain}_1.fastq"){
+    if(-e "${id}_1.fastq"){
         system("cat $id\_1.fastq >> ${strain}_1.fastq");
     }
-    if(-e "${strain}_2.fastq"){
+    if(-e "${id}.fastq"){
+        system("cat $id.fastq >> ${strain}_1.fastq");
+    }
+    if(-e "${id}_2.fastq"){
 	system("cat $id\_2.fastq >> ${strain}_2.fastq");
     }
     
