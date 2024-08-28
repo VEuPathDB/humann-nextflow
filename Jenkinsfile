@@ -6,7 +6,7 @@ import org.veupathdb.lib.Builder
 node('centos8') {
   def builder = new Builder(this)
 
-  checkout scm
+  builder.gitClone()
   builder.buildContainers([
     [ name: 'humann' ]
   ])
