@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 
 process downloadFiles {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   input:
     val id
@@ -17,7 +17,7 @@ process downloadFiles {
 
 
 process knead {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   label 'download_and_preprocess'
 
@@ -35,7 +35,7 @@ process knead {
 }
 
 process runHumann {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   afterScript 'mv -v reads_humann_temp/reads.log humann.log; test -f reads_humann_temp/reads_metaphlan_bugs_list.tsv && mv -v reads_humann_temp/reads_metaphlan_bugs_list.tsv bugs.tsv ; rm -rv reads_humann_temp'
 
@@ -53,7 +53,7 @@ process runHumann {
 }
 
 process groupFunctionalUnits {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   input:
     tuple val(sample), file(geneAbundances)
@@ -71,7 +71,7 @@ process groupFunctionalUnits {
 
 
 process aggregateFunctionAbundances {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   publishDir params.resultDir, mode: 'move'
 
@@ -87,7 +87,7 @@ process aggregateFunctionAbundances {
 }
 
 process aggregateTaxonAbundances {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   publishDir params.resultDir, mode: 'move'
 
@@ -110,7 +110,7 @@ process aggregateTaxonAbundances {
 
 
 process aggregatePathwayAbundances {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   publishDir params.resultDir, mode: 'move'
 
@@ -125,7 +125,7 @@ process aggregatePathwayAbundances {
 }
 
 process aggregatePathwayCoverages {
-  container = 'veupathdb/humann:v1.0.0'
+  container = 'veupathdb/humann:1.0.0'
 
   publishDir params.resultDir, mode: 'move'
 
