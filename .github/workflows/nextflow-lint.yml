@@ -1,0 +1,9 @@
+name: Nextflow lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    uses: VEuPathDB/.github/.github/workflows/nextflow-lint.yml@main
